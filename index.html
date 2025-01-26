@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e7cfa, #3a4cfc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background-color: #1f1f1f;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #3498db;
+        }
+
+        .feature {
+            margin-bottom: 30px;
+        }
+
+        .input-box, .button, .pin-input {
+            padding: 12px;
+            font-size: 16px;
+            width: 100%;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 15px;
+            outline: none;
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        .input-box:focus, .pin-input:focus {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.6);
+        }
+
+        .button {
+            background-color: #3498db;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        .strength-output {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #95a5a6;
+        }
+
+        .strength-bar {
+            height: 5px;
+            width: 100%;
+            border-radius: 5px;
+            background: #e74c3c;
+            margin-top: 5px;
+        }
+
+        .saved-passwords {
+            margin-top: 30px;
+        }
+
+        .saved-passwords h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #ecf0f1;
+        }
+
+        #password-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #password-list li {
+            background-color: #34495e;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn, .delete-btn {
+            background-color: #f39c12;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .copy-btn:hover, .delete-btn:hover {
+            background-color: #e67e22;
+        }
+
+        .pin-container {
+            text-align: center;
+        }
+
+        .pin-button {
+            padding: 12px 20px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .pin-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="password-manager">
+        <h1>Password Manager</h1>
+
+        <!-- PIN Setup and Input -->
+        <div id="pin-setup" class="pin-container">
+            <h2>Set Your PIN</h2>
+            <input type="password" id="pin-input" class="pin-input" placeholder="Enter a new PIN (4 digits)">
+            <button id="set-pin" class="pin-button">Set PIN</button>
+        </div>
+
+        <div id="pin-login" class="pin-container" style="display:none;">
+            <h2>Enter Your PIN</h2>
+            <input type="password" id="pin-enter" class="pin-input" placeholder="Enter your PIN">
+            <button id="verify-pin" class="pin-button">Verify PIN</button>
+        </div>
+
+        <!-- Main Password Manager Interface -->
+        <div id="password-container" style="display:none;">
+            <div class="feature">
+                <button id="generate-password" class="button">Generate Password</button>
+                <input type="text" id="generated-password" readonly placeholder="Generated Password" class="input-box">
+                <button id="copy-password" class="button">Copy</button>
+            </div>
+            <div class="feature">
+                <button id="check-strength" class="button">Check Password Strength</button>
+                <input type="text" id="password-input" placeholder="Enter Password" class="input-box">
+                <div id="strength-output" class="strength-output"></div>
+            </div>
+            <div class="feature">
+                <button id="save-password" class="button">Save Password</button>
+                <input type="text" id="site-name" placeholder="Enter Site Name" class="input-box">
+                <input type="text" id="saved-password" placeholder="Saved Password" class="input-box" readonly>
+            </div>
+            <div class="saved-passwords">
+                <h3>Saved Passwords</h3>
+                <ul id="password-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Checking if a PIN is already set
+        if (!localStorage.getItem('pin')) {
+            // If no PIN is set, show the setup form
+            document.getElementById('pin-setup').style.display = 'block';
+            document.getElementById('set-pin').onclick = function() {
+                const pin = document.getElementById('pin-input').value;
+                if (pin && pin.length === 4) {
+                    localStorage.setItem('pin', pin);
+                    document.getElementById('pin-setup').style.display = 'none';
+                    document.getElementById('pin-login').style.display = 'block';
+                } else {
+                    alert('Please enter a valid 4-digit PIN.');
+                }
+            };
+        } else {
+            // If PIN is already set, show the login form
+            document.getElementById('pin-login').style.display = 'block';
+        }
+
+        // Verifying PIN
+        document.getElementById('verify-pin').onclick = function() {
+            const enteredPin = document.getElementById('pin-enter').value;
+            const storedPin = localStorage.getItem('pin');
+            if (enteredPin === storedPin) {
+                document.getElementById('pin-login').style.display = 'none';
+                document.getElementById('password-container').style.display = 'block';
+            } else {
+                alert('Incorrect PIN. Please try again.');
+            }
+        };
+
+        // Password Generator
+        document.getElementById('generate-password').onclick = function() {
+            const length = 12;
+            const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+            let password = "";
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            document.getElementById('generated-password').value = password;
+        };
+
+        // Copy Password to Clipboard
+        document.getElementById('copy-password').onclick = function() {
+            const passwordField = document.getElementById('generated-password');
+            navigator.clipboard.writeText(passwordField.value).then(() => {
+                alert('Password copied to clipboard');
+            });
+        };
+
+        // Save Password
+        document.getElementById('save-password').onclick = function() {
+            const site = document.getElementById('site-name').value;
+            const password = document.getElementById('generated-password').value;
+
+            if (site && password) {
+                const encryptedPassword = btoa(password); 
+                let passwords = JSON.parse(localStorage.getItem('passwords')) || {};
+                passwords[site] = encryptedPassword;
+                localStorage.setItem('passwords', JSON.stringify(passwords));
+                displaySavedPasswords();
+                alert('Password saved!');
+            } else {
+                alert('Please enter a valid site and password');
+            }
+        };
+
+        // Display Saved Passwords
+        function displaySavedPasswords() {
+            const passwordList = document.getElementById('password-list');
+            passwordList.innerHTML = '';
+
+            let passwords = JSON.parse(localStorage.getItem('passwords')) || {};
+
+            for (let site in passwords) {
+                let password = atob(passwords[site]); 
+                let listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${site}</span>
+                    <span>${password}</span>
+                    <button class="copy-btn" onclick="copyPassword('${password}')">Copy</button>
+                    <button class="delete-btn" onclick="deletePassword('${site}')">Delete</button>
+                `;
+                passwordList.appendChild(listItem);
+            }
+        }
+
+        // Copy password
+        function copyPassword(password) {
+            navigator.clipboard.writeText(password).then(() => {
+                alert('Password copied to clipboard');
+            });
+        }
+
+        // Delete Password
+        function deletePassword(site) {
+            let passwords = JSON.parse(localStorage.getItem('passwords')) || {};
+            delete passwords[site];
+            localStorage.setItem('passwords', JSON.stringify(passwords));
+            displaySavedPasswords();
+            alert('Password deleted');
+        }
+
+        // Display Saved Passwords Initially
+        displaySavedPasswords();
+    </script>
+</body>
+</html>
